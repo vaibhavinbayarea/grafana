@@ -22,8 +22,10 @@ function (_) {
     bucketAggTypes: [
       {text: "Terms",           value: 'terms', requiresField: true},
       {text: "Filters",         value: 'filters' },
-      {text: "Geo Hash Grid",        value: 'geohash_grid', requiresField: true},
+      {text: "Nested",          value: 'nested', requiresField: true},
+      {text: "Geo Hash Grid",   value: 'geohash_grid', requiresField: true},
       {text: "Date Histogram",  value: 'date_histogram', requiresField: true},
+      {text: "Term Histogram",  value: 'terms_histogram' },
     ],
 
     orderByOptions: [
@@ -72,7 +74,9 @@ function (_) {
     pipelineOptions: {
       'moving_avg' : [
         {text: 'window', default: 5},
-        {text: 'model', default: 'simple'}
+        {text: 'model', default: 'simple'},
+        {text: 'minimize', default: false},
+        {text: 'predict', default: 0}
       ],
       'derivative': [
         {text: 'unit', default: undefined},

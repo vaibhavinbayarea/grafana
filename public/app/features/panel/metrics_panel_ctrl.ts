@@ -128,8 +128,12 @@ class MetricsPanelCtrl extends PanelCtrl {
   applyPanelTimeOverrides() {
     this.timeInfo = '';
 
+    // scenarios to handle
+    // 1. last days provided, future is now
+    // 2. last days provided, future to provided
+    // 3. last days is now, future to provided
     // check panel time overrrides
-    if (this.panel.timeFrom) {
+    if (this.panel.timeFrom && !(this.panel.timeTo)) {
       var timeFromInterpolated = this.templateSrv.replace(this.panel.timeFrom, this.panel.scopedVars);
       var timeFromInfo = rangeUtil.describeTextRange(timeFromInterpolated);
       if (timeFromInfo.invalid) {
@@ -144,6 +148,57 @@ class MetricsPanelCtrl extends PanelCtrl {
         this.rangeRaw.to = timeFromInfo.to;
         this.range.from = timeFromDate;
         this.range.to = dateMath.parse(timeFromInfo.to);
+      }
+    }
+
+    // check panel time overrrides for future
+    if (this.panel.timeTo && !(this.panel.timeFrom)) {
+      var timeToInterpolated = this.templateSrv.replace(this.panel.timeTo, this.panel.scopedVars);
+      var timeToInfo = rangeUtil.describeTextRangeTo(timeToInterpolated);
+      if (timeToInfo.invalid) {
+        this.timeInfo = 'invalid time override';
+        return;
+      }
+
+      if (_.isString(this.rangeRaw.to)) {
+        var timeToDate = dateMath.parse(timeToInfo.to);
+        this.timeInfo = timeToInfo.display;
+        //this.rangeRaw.from = timeToInfo.from;
+        this.rangeRaw.to = timeToInfo.to;
+        //this.range.from = dateMath.parse(timeToInfo.from);
+        this.range.to = timeToDate;
+      }
+    }
+
+
+    // check panel time overrrides for past and future
+    if (this.panel.timeTo && this.panel.timeFrom) {
+      var timeToInterpolated = this.templateSrv.replace(this.panel.timeTo, this.panel.scopedVars);
+      var timeFromInterpolated = this.templateSrv.replace(this.panel.timeFrom, this.panel.scopedVars);
+      var timeToInfo = rangeUtil.describeTextRangeTo(timeToInterpolated);
+      var timeFromInfo = rangeUtil.describeTextRange(timeFromInterpolated);
+
+      if (timeToInfo.invalid || timeFromInfo.invalid) {
+        this.timeInfo = 'invalid time override';
+        return;
+      }
+
+      if (_.isString(this.rangeRaw.from)) {
+        var timeFromDate = dateMath.parse(timeFromInfo.from);
+        this.timeInfo = timeFromInfo.display;
+        this.rangeRaw.from = timeFromInfo.from;
+        //this.rangeRaw.to = timeFromInfo.to;
+        this.range.from = timeFromDate;
+        //this.range.to = dateMath.parse(timeFromInfo.to);
+      }
+
+      if (_.isString(this.rangeRaw.to)) {
+        var timeToDate = dateMath.parse(timeToInfo.to);
+        this.timeInfo = timeToInfo.display;
+        //this.rangeRaw.from = timeToInfo.from;
+        this.rangeRaw.to = timeToInfo.to;
+        //this.range.from = dateMath.parse(timeToInfo.from);
+        this.range.to = timeToDate;
       }
     }
 

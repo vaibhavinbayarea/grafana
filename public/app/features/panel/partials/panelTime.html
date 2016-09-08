@@ -10,6 +10,12 @@
 		<input type="text" class="gf-form-input max-width-8" placeholder="1h"
 			empty-to-null ng-model="ctrl.panel.timeFrom" valid-time-span
 			ng-change="ctrl.refresh()" ng-model-onblur></input>
+
+		<span class="gf-form-label width-6">To</span>
+
+		<input type="text" class="gf-form-input max-width-8" placeholder="now"
+			empty-to-null ng-model="ctrl.panel.timeTo" valid-time-span
+			ng-change="ctrl.refresh()" ng-model-onblur></input>
 	</div>
 
 	<div class="gf-form">

@@ -113,6 +113,38 @@ export function describeTextRange(expr: any) {
   return opt;
 }
 
+export function describeTextRangeTo(expr: any) {
+  if (expr.indexOf('now') === -1) {
+    expr = 'now+' + expr;
+  }
+
+  let opt = rangeIndex['now to ' + expr];
+  if (opt) {
+    return opt;
+  }
+
+  opt = {from: 'now', to: expr};
+
+  let parts = /^now\+(\d+)(\w)/.exec(expr);
+  if (parts) {
+    let unit = parts[2];
+    let amount = parseInt(parts[1]);
+    let span = spans[unit];
+    if (span) {
+      opt.display = 'Future ' + amount + ' ' + span.display;
+      opt.section = span.section;
+      if (amount > 1) {
+        opt.display += 's';
+      }
+    }
+  } else {
+    opt.display = opt.from + ' to ' + opt.to;
+    opt.invalid = true;
+  }
+
+  return opt;
+}
+
 export function describeTimeRange(range) {
   var option = rangeIndex[range.from.toString() + ' to ' + range.to.toString()];
   if (option) {

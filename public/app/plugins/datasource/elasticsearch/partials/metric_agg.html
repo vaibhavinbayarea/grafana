@@ -53,6 +53,35 @@
 		<input type="text" class="gf-form-input max-width-12" ng-change="onChangeInternal()" ng-model="agg.settings.model" blur="onChange()" spellcheck='false'>
 	</div>
 
+	<div class="gf-form offset-width-7" ng-if="agg.type === 'moving_avg'">
+		<label class="gf-form-label width-10">Predict</label>
+		<input type="number" class="gf-form-input max-width-12" ng-model="agg.settings.predict" ng-blur="onChangeInternal()" spellcheck='false'>
+	</div>
+
+	<div class="gf-form offset-width-7" ng-if="agg.type === 'moving_avg' && agg.settings.model != 'simple'">
+                <div>
+                <label class="gf-form-label width-10">Alpha</label>
+                <input type="number" class="gf-form-input max-width-12" ng-model="agg.settings.settings.alpha" ng-blur="onChangeInternal()" spellcheck='false'>
+                </div>
+                <div>
+                <label class="gf-form-label width-10">Beta</label>
+                <input type="number" class="gf-form-input max-width-12" ng-model="agg.settings.settings.beta" ng-blur="onChangeInternal()" spellcheck='false'>
+                </div>
+                <div>
+                <label class="gf-form-label width-10">Gamma</label>
+                <input type="number" class="gf-form-input max-width-12" ng-model="agg.settings.settings.gamma" ng-blur="onChangeInternal()" spellcheck='false'>
+                </div>
+                <div>
+                <label class="gf-form-label width-10">Period</label>
+                <input type="number" class="gf-form-input max-width-12" ng-model="agg.settings.settings.period" ng-blur="onChangeInternal()" spellcheck='false'>
+                </div>
+                <div>
+	</div>
+
+	<div class="gf-form offset-width-7" ng-if="agg.type === 'moving_avg'">
+		<gf-form-switch label="Minimize" label-class="gf-form-label width-10" on-change="onChangeInternal()" checked="agg.settings.minimize"></gf-form-switch>
+	</div>
+
 	<div class="gf-form offset-width-7" ng-if="agg.type === 'percentiles'">
 		<label class="gf-form-label width-10">Percentiles</label>
 		<input type="text" class="gf-form-input max-width-12" ng-model="agg.settings.percents" array-join ng-blur="onChange()"></input>
