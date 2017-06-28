@@ -14,8 +14,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/go-macaron/session"
 	"gopkg.in/ini.v1"
+
+	"github.com/go-macaron/session"
 
 	"github.com/grafana/grafana/pkg/log"
 	"github.com/grafana/grafana/pkg/util"
@@ -26,6 +27,7 @@ type Scheme string
 const (
 	HTTP              Scheme = "http"
 	HTTPS             Scheme = "https"
+	SOCKET            Scheme = "socket"
 	DEFAULT_HTTP_ADDR string = "0.0.0.0"
 )
 
@@ -64,7 +66,9 @@ var (
 	HttpAddr, HttpPort string
 	SshPort            int
 	CertFile, KeyFile  string
+	SocketPath         string
 	RouterLogging      bool
+	DataProxyLogging   bool
 	StaticRootPath     string
 	EnableGzip         bool
 	EnforceDomain      bool
@@ -94,6 +98,7 @@ var (
 	LoginHint          string
 	DefaultTheme       string
 	DisableLoginForm   bool
+	DisableSignoutMenu bool
 
 	// Http auth
 	AdminUser     string
@@ -148,13 +153,14 @@ var (
 	Quota QuotaSettings
 
 	// Alerting
-	ExecuteAlerts bool
+	AlertingEnabled bool
+	ExecuteAlerts   bool
 
 	// logger
 	logger log.Logger
 
 	// Grafana.NET URL
-	GrafanaNetUrl string
+	GrafanaComUrl string
 
 	// S3 temp image store
 	S3TempImageStoreBucketUrl string
@@ -452,22 +458,6 @@ func validateStaticRootPath() error {
 	return fmt.Errorf("Failed to detect generated css or javascript files in static root (%s), have you executed default grunt task?", StaticRootPath)
 }
 
-// func readInstanceName() string {
-// 	hostname, _ := os.Hostname()
-// 	if hostname == "" {
-// 		hostname = "hostname_unknown"
-// 	}
-//
-// 	instanceName := Cfg.Section("").Key("instance_name").MustString("")
-// 	if instanceName = "" {
-// 		// set value as it might be used in other places
-// 		Cfg.Section("").Key("instance_name").SetValue(hostname)
-// 		instanceName = hostname
-// 	}
-//
-// 	return
-// }
-
 func NewConfigContext(args *CommandLineArgs) error {
 	setHomePath(args)
 	loadConfiguration(args)
@@ -485,11 +475,16 @@ func NewConfigContext(args *CommandLineArgs) error {
 		CertFile = server.Key("cert_file").String()
 		KeyFile = server.Key("cert_key").String()
 	}
+	if server.Key("protocol").MustString("http") == "socket" {
+		Protocol = SOCKET
+		SocketPath = server.Key("socket").String()
+	}
 
 	Domain = server.Key("domain").MustString("localhost")
 	HttpAddr = server.Key("http_addr").MustString(DEFAULT_HTTP_ADDR)
 	HttpPort = server.Key("http_port").MustString("3000")
 	RouterLogging = server.Key("router_logging").MustBool(false)
+
 	EnableGzip = server.Key("enable_gzip").MustBool(false)
 	EnforceDomain = server.Key("enforce_domain").MustBool(false)
 	StaticRootPath = makeAbsolute(server.Key("static_root_path").String(), HomePath)
@@ -497,6 +492,10 @@ func NewConfigContext(args *CommandLineArgs) error {
 	if err := validateStaticRootPath(); err != nil {
 		return err
 	}
+
+	// read data proxy settings
+	dataproxy := Cfg.Section("dataproxy")
+	DataProxyLogging = dataproxy.Key("logging").MustBool(false)
 
 	// read security settings
 	security := Cfg.Section("security")
@@ -516,7 +515,7 @@ func NewConfigContext(args *CommandLineArgs) error {
 
 	//  read data source proxy white list
 	DataProxyWhiteList = make(map[string]bool)
-	for _, hostAndIp := range security.Key("data_source_proxy_whitelist").Strings(" ") {
+	for _, hostAndIp := range util.SplitString(security.Key("data_source_proxy_whitelist").String()) {
 		DataProxyWhiteList[hostAndIp] = true
 	}
 
@@ -536,6 +535,7 @@ func NewConfigContext(args *CommandLineArgs) error {
 	// auth
 	auth := Cfg.Section("auth")
 	DisableLoginForm = auth.Key("disable_login_form").MustBool(false)
+	DisableSignoutMenu = auth.Key("disable_signout_menu").MustBool(false)
 
 	// anonymous access
 	AnonymousEnabled = Cfg.Section("auth.anonymous").Key("enabled").MustBool(false)
@@ -571,6 +571,7 @@ func NewConfigContext(args *CommandLineArgs) error {
 	LdapAllowSignup = ldapSec.Key("allow_sign_up").MustBool(true)
 
 	alerting := Cfg.Section("alerting")
+	AlertingEnabled = alerting.Key("enabled").MustBool(true)
 	ExecuteAlerts = alerting.Key("execute_alerts").MustBool(true)
 
 	readSessionConfig()
@@ -581,7 +582,11 @@ func NewConfigContext(args *CommandLineArgs) error {
 		log.Warn("require_email_validation is enabled but smpt is disabled")
 	}
 
-	GrafanaNetUrl = Cfg.Section("grafana_net").Key("url").MustString("https://grafana.net")
+	// check old key  name
+	GrafanaComUrl = Cfg.Section("grafana_net").Key("url").MustString("")
+	if GrafanaComUrl == "" {
+		GrafanaComUrl = Cfg.Section("grafana_com").Key("url").MustString("https://grafana.com")
+	}
 
 	imageUploadingSection := Cfg.Section("external_image_storage")
 	ImageUploadProvider = imageUploadingSection.Key("provider").MustString("internal")

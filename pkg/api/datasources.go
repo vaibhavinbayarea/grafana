@@ -11,17 +11,16 @@ import (
 	"github.com/grafana/grafana/pkg/util"
 )
 
-func GetDataSources(c *middleware.Context) {
+func GetDataSources(c *middleware.Context) Response {
 	query := m.GetDataSourcesQuery{OrgId: c.OrgId}
 
 	if err := bus.Dispatch(&query); err != nil {
-		c.JsonApiErr(500, "Failed to query datasources", err)
-		return
+		return ApiError(500, "Failed to query datasources", err)
 	}
 
 	result := make(dtos.DataSourceList, 0)
 	for _, ds := range query.Result {
-		dsItem := dtos.DataSource{
+		dsItem := dtos.DataSourceListItemDTO{
 			Id:        ds.Id,
 			OrgId:     ds.OrgId,
 			Name:      ds.Name,
@@ -46,7 +45,8 @@ func GetDataSources(c *middleware.Context) {
 	}
 
 	sort.Sort(result)
-	c.JSON(200, result)
+
+	return Json(200, &result)
 }
 
 func GetDataSourceById(c *middleware.Context) Response {
@@ -68,7 +68,7 @@ func GetDataSourceById(c *middleware.Context) Response {
 	return Json(200, &dtos)
 }
 
-func DeleteDataSource(c *middleware.Context) {
+func DeleteDataSourceById(c *middleware.Context) {
 	id := c.ParamsInt64(":id")
 
 	if id <= 0 {
@@ -76,7 +76,26 @@ func DeleteDataSource(c *middleware.Context) {
 		return
 	}
 
-	cmd := &m.DeleteDataSourceCommand{Id: id, OrgId: c.OrgId}
+	cmd := &m.DeleteDataSourceByIdCommand{Id: id, OrgId: c.OrgId}
+
+	err := bus.Dispatch(cmd)
+	if err != nil {
+		c.JsonApiErr(500, "Failed to delete datasource", err)
+		return
+	}
+
+	c.JsonOK("Data source deleted")
+}
+
+func DeleteDataSourceByName(c *middleware.Context) {
+	name := c.Params(":name")
+
+	if name == "" {
+		c.JsonApiErr(400, "Missing valid datasource name", nil)
+		return
+	}
+
+	cmd := &m.DeleteDataSourceByNameCommand{Name: name, OrgId: c.OrgId}
 
 	err := bus.Dispatch(cmd)
 	if err != nil {
@@ -130,8 +149,8 @@ func fillWithSecureJsonData(cmd *m.UpdateDataSourceCommand) error {
 	if err != nil {
 		return err
 	}
-	secureJsonData := ds.SecureJsonData.Decrypt()
 
+	secureJsonData := ds.SecureJsonData.Decrypt()
 	for k, v := range secureJsonData {
 
 		if _, ok := cmd.SecureJsonData[k]; !ok {
@@ -139,6 +158,8 @@ func fillWithSecureJsonData(cmd *m.UpdateDataSourceCommand) error {
 		}
 	}
 
+	// set version from db
+	cmd.Version = ds.Version
 	return nil
 }
 

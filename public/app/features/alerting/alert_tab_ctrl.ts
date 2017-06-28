@@ -81,7 +81,7 @@ export class AlertTabCtrl {
       this.alertHistory = _.map(res, ah => {
         ah.time = moment(ah.time).format('MMM D, YYYY HH:mm:ss');
         ah.stateModel = alertDef.getStateDisplayModel(ah.newState);
-        ah.metrics = alertDef.joinEvalMatches(ah.data, ', ');
+        ah.info = alertDef.getAlertAnnotationInfo(ah);
         return ah;
       });
     });
@@ -95,6 +95,8 @@ export class AlertTabCtrl {
       case "webhook": return "fa fa-cubes";
       case "pagerduty": return "fa fa-bullhorn";
       case "opsgenie": return "fa fa-bell";
+      case "hipchat": return "fa fa-mail-forward";
+      case "pushover": return "fa fa-mobile";
     }
   }
 

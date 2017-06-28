@@ -87,7 +87,7 @@ function (angular, _, moment, kbn, ElasticQueryBuilder, IndexPattern, ElasticRes
       var queryInterpolated = templateSrv.replace(queryString, {}, 'lucene');
       var query = {
         "bool": {
-          "must": [
+          "filter": [
             { "range": range },
             {
               "query_string": {
@@ -168,11 +168,22 @@ function (angular, _, moment, kbn, ElasticQueryBuilder, IndexPattern, ElasticRes
     };
 
     this.testDatasource = function() {
-      return this._get('/_stats').then(function() {
-        return { status: "success", message: "Data source is working", title: "Success" };
-      }, function(err) {
+      timeSrv.setTime({ from: 'now-1m', to: 'now' }, true);
+      // validate that the index exist and has date field
+      return this.getFields({type: 'date'}).then(function(dateFields) {
+        var timeField = _.find(dateFields, {text: this.timeField});
+        if (!timeField) {
+          return { status: "error", message: "No date field named " + this.timeField + ' found', title: "Error" };
+        }
+        return { status: "success", message: "Index OK. Time field name OK.", title: "Success" };
+      }.bind(this), function(err) {
+        console.log(err);
         if (err.data && err.data.error) {
-          return { status: "error", message: angular.toJson(err.data.error), title: "Error" };
+          var message = angular.toJson(err.data.error);
+          if (err.data.error.reason) {
+            message = err.data.error.reason;
+          }
+          return { status: "error", message: message, title: "Error" };
         } else {
           return { status: "error", message: err.status, title: "Error" };
         }
@@ -197,15 +208,9 @@ function (angular, _, moment, kbn, ElasticQueryBuilder, IndexPattern, ElasticRes
         target = options.targets[i];
         if (target.hide) {continue;}
 
-        var queryObj = this.queryBuilder.build(target, adhocFilters);
+        var queryString = templateSrv.replace(target.query || '*', options.scopedVars, 'lucene');
+        var queryObj = this.queryBuilder.build(target, adhocFilters, queryString);
         var esQuery = angular.toJson(queryObj);
-        var luceneQuery = target.query || '*';
-        luceneQuery = templateSrv.replace(luceneQuery, options.scopedVars, 'lucene');
-        luceneQuery = angular.toJson(luceneQuery);
-
-        // remove inner quotes
-        luceneQuery = luceneQuery.substr(1, luceneQuery.length - 2);
-        esQuery = esQuery.replace("$lucene_query", luceneQuery);
 
         var searchType = (queryObj.size === 0 && this.esVersion < 5) ? 'count' : 'query_then_fetch';
         var header = this.getQueryHeader(searchType, options.range.from, options.range.to);
@@ -219,7 +224,6 @@ function (angular, _, moment, kbn, ElasticQueryBuilder, IndexPattern, ElasticRes
         return $q.when([]);
       }
 
-      payload = payload.replace(/\$interval/g, options.interval);
       payload = payload.replace(/\$timeFrom/g, options.range.from.valueOf());
       payload = payload.replace(/\$timeTo/g, options.range.to.valueOf());
       payload = templateSrv.replace(payload, options.scopedVars);

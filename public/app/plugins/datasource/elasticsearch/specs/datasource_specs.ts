@@ -11,7 +11,7 @@ describe('ElasticDatasource', function() {
 
   beforeEach(angularMocks.module('grafana.core'));
   beforeEach(angularMocks.module('grafana.services'));
-  beforeEach(ctx.providePhase(['templateSrv', 'backendSrv']));
+  beforeEach(ctx.providePhase(['templateSrv', 'backendSrv', 'timeSrv']));
 
   beforeEach(angularMocks.inject(function($q, $rootScope, $httpBackend, $injector) {
     ctx.$q = $q;
@@ -42,7 +42,7 @@ describe('ElasticDatasource', function() {
       ctx.$rootScope.$apply();
 
       var today = moment.utc().format("YYYY.MM.DD");
-      expect(requestOptions.url).to.be("http://es.com/asd-" + today + '/_stats');
+      expect(requestOptions.url).to.be("http://es.com/asd-" + today + '/_mapping');
     });
   });
 
@@ -77,7 +77,7 @@ describe('ElasticDatasource', function() {
 
     it('should json escape lucene query', function() {
       var body = angular.fromJson(parts[1]);
-      expect(body.query.bool.must[1].query_string.query).to.be('escape\\:test');
+      expect(body.query.bool.filter[1].query_string.query).to.be('escape\\:test');
     });
   });
 

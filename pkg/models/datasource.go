@@ -116,12 +116,18 @@ type UpdateDataSourceCommand struct {
 	JsonData          *simplejson.Json  `json:"jsonData"`
 	SecureJsonData    map[string]string `json:"secureJsonData"`
 
-	OrgId int64 `json:"-"`
-	Id    int64 `json:"-"`
+	OrgId   int64 `json:"-"`
+	Id      int64 `json:"-"`
+	Version int   `json:"-"`
 }
 
-type DeleteDataSourceCommand struct {
+type DeleteDataSourceByIdCommand struct {
 	Id    int64
+	OrgId int64
+}
+
+type DeleteDataSourceByNameCommand struct {
+	Name  string
 	OrgId int64
 }
 

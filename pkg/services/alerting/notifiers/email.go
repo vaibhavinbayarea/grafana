@@ -16,7 +16,7 @@ func init() {
 	alerting.RegisterNotifier(&alerting.NotifierPlugin{
 		Type:        "email",
 		Name:        "Email",
-		Description: "Sends notifications using Grafana server configured STMP settings",
+		Description: "Sends notifications using Grafana server configured SMTP settings",
 		Factory:     NewEmailNotifier,
 		OptionsTemplate: `
       <h3 class="page-heading">Email addresses</h3>
@@ -69,6 +69,11 @@ func (this *EmailNotifier) Notify(evalContext *alerting.EvalContext) error {
 		return err
 	}
 
+	error := ""
+	if evalContext.Error != nil {
+		error = evalContext.Error.Error()
+	}
+
 	cmd := &m.SendEmailCommandSync{
 		SendEmailCommand: m.SendEmailCommand{
 			Subject: evalContext.GetNotificationTitle(),
@@ -78,6 +83,7 @@ func (this *EmailNotifier) Notify(evalContext *alerting.EvalContext) error {
 				"Name":         evalContext.Rule.Name,
 				"StateModel":   evalContext.GetStateModel(),
 				"Message":      evalContext.Rule.Message,
+				"Error":        error,
 				"RuleUrl":      ruleUrl,
 				"ImageLink":    "",
 				"EmbededImage": "",

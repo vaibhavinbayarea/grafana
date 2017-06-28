@@ -3,6 +3,7 @@ package models
 import "errors"
 
 var ErrInvalidEmailCode = errors.New("Invalid or expired email code")
+var ErrSmtpNotEnabled = errors.New("SMTP not configured, check your grafana.ini config file's [smtp] section.")
 
 type SendEmailCommand struct {
 	To           []string
@@ -23,6 +24,7 @@ type SendWebhookSync struct {
 	Password   string
 	Body       string
 	HttpMethod string
+	HttpHeader map[string]string
 }
 
 type SendResetPasswordEmailCommand struct {

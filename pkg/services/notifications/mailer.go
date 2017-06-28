@@ -101,12 +101,13 @@ func createDialer() (*gomail.Dialer, error) {
 
 	d := gomail.NewDialer(host, iPort, setting.Smtp.User, setting.Smtp.Password)
 	d.TLSConfig = tlsconfig
+	d.LocalName = setting.InstanceName
 	return d, nil
 }
 
 func buildEmailMessage(cmd *m.SendEmailCommand) (*Message, error) {
 	if !setting.Smtp.Enabled {
-		return nil, errors.New("Grafana mailing/smtp options not configured, contact your Grafana admin")
+		return nil, m.ErrSmtpNotEnabled
 	}
 
 	var buffer bytes.Buffer
@@ -149,7 +150,7 @@ func buildEmailMessage(cmd *m.SendEmailCommand) (*Message, error) {
 
 	return &Message{
 		To:           cmd.To,
-		From:         setting.Smtp.FromAddress,
+		From:         fmt.Sprintf("%s <%s>", setting.Smtp.FromName, setting.Smtp.FromAddress),
 		Subject:      subject,
 		Body:         buffer.String(),
 		EmbededFiles: cmd.EmbededFiles,

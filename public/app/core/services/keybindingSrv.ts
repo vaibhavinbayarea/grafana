@@ -74,7 +74,7 @@ export class KeybindingSrv {
       evt.stopPropagation();
       evt.returnValue = false;
       return this.$rootScope.$apply(fn.bind(this));
-    });
+    }, 'keydown');
   }
 
   showDashEditView(view) {
@@ -83,10 +83,6 @@ export class KeybindingSrv {
   }
 
   setupDashboardBindings(scope, dashboard) {
-    // this.bind('b', () => {
-    //   dashboard.toggleEditMode();
-    // });
-
     this.bind('mod+o', () => {
       dashboard.graphTooltip = (dashboard.graphTooltip + 1) % 3;
       appEvents.emit('graph-hover-clear');
@@ -184,6 +180,20 @@ export class KeybindingSrv {
         var panelInfo = dashboard.getPanelInfoById(dashboard.meta.focusPanelId);
         panelInfo.row.toggleCollapse();
         dashboard.meta.focusPanelId = 0;
+      }
+    });
+
+    // collapse all rows
+    this.bind('d C', () => {
+      for (let row of dashboard.rows) {
+        row.collapse = true;
+      }
+    });
+
+    // expand all rows
+    this.bind('d E', () => {
+      for (let row of dashboard.rows) {
+        row.collapse = false;
       }
     });
 
